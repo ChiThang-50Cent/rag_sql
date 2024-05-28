@@ -1,0 +1,1 @@
+FROM /kaggle/tmp/ggml-vistral-7B-chat-q5_1.gguf
