@@ -1,1 +1,1 @@
-FROM /kaggle/tmp/sqlcoder-7b-q5_k_m.gguf
+FROM /kaggle/tmp/llama-3-sqlcoder-8b.Q5_K_M.gguf
