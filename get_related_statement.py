@@ -59,7 +59,7 @@ def main(embedding_model, ce_rf):
 
             for doc in related_doc:
                 file.write(doc + '\n')
-                file.write(get_related_ddl(embedding_model, doc) + '\n')
+                file.write(''.join(get_related_ddl(embedding_model, doc)) + '\n')
         
             file.write('-' * 20 + '\n\n')
             

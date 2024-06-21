@@ -30,7 +30,7 @@ if __name__ == "__main__":
     )
 
     ddl_docs = parse_sql_file("./ddl_statement/table_info.txt")
-    ddl_docs = [(doc.split("\n")[0], doc) for doc in ddl_docs]
+    ddl_docs = [(doc[0].split("\n")[0], doc) for doc in ddl_docs]
     print(insert_db(sentence_transformer_ef, "ddl_statements", ddl_docs))
 
     doc_docs = [

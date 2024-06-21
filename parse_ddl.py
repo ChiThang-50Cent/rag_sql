@@ -21,9 +21,20 @@ def parse_sql_file(file_path):
 
         if query:
             list_sql.append(query.strip())
-    
-    return list_sql
 
+    def split_long_queries(list_sql):
+        result = []
+        for query in list_sql:
+            if len(query) > 4000:
+                prefix = query.split('\n')[0] + '\n'
+                suffix = '\n);\n\n'
+                sub_queries = [prefix + query[i:i+2000] + suffix for i in range(0, len(query), 2000)]
+                result.append(sub_queries)
+            else:
+                result.append([query])
+        return result
+    
+    return split_long_queries(list_sql)
 
 def add_ddl_to_json(list_ddl):
     table_info = {}
@@ -42,4 +53,4 @@ def add_ddl_to_json(list_ddl):
 if __name__ == "__main__":
 
     ddl = parse_sql_file("./ddl_statement/table_info.txt")
-    jsondata = add_ddl_to_json(ddl)
+    print(ddl[0])
