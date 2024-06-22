@@ -1,3 +1,4 @@
+import re
 import torch
 from typing import Dict, List, Tuple
 
@@ -207,9 +208,9 @@ class MilvusDB_VectorStore:
     def insert_ddl_statements(self, ddls: List[str]):
         data = [
             {
-                "table_name": ddl.split("\n")[0],
+                "table_name": re.search(r'CREATE TABLE (\w+) \(', ddl).group(1),
                 "name_vector": self.embedding_model.encode_documents(
-                    [ddl.split("\n")[0]]
+                    re.search(r'CREATE TABLE (\w+) \(', ddl).group(1)
                 )[0],
                 "table_ddl": ddl,
             }
@@ -392,7 +393,7 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
             view_support = True,
         )
 
-        return str(db.get_context()['table_info']).split('\n\n')
+        return db.get_context()['table_info'].split('\n\n')
 
     def run_sql(self, query):
         if self.connection:
@@ -463,31 +464,32 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
             print('Error when run sql: ', e)
             return 'Đang có trục trặc gì ấy.. .-.',  prompt, sql
 
+
 if __name__ == "__main__":
 
     rag2sql = Rag2SQL_Model('milvus_demo.db', 'model_name')
 
     ddls = rag2sql.get_ddls()
     guide_docs = [
-        ("phòng, department", ["CREATE TABLE hr_department"]),
-        ("bệnh nhân, patient", ["CREATE TABLE medical_patient"]),
-        ("nhân viên, staff, employee", ["CREATE TABLE hr_employee"]),
+        ("phòng, department", ["hr_department"]),
+        ("bệnh nhân, patient", ["medical_patient"]),
+        ("nhân viên, staff, employee", ["hr_employee"]),
         (
             "xét nghiệm, kết quả, chỉ số, test result, test indices",
             [
-                "CREATE TABLE medical_test",
-                "CREATE TABLE medical_test_result",
-                "CREATE TABLE medical_test_indices",
+                "medical_test",
+                "medical_test_result",
+                "medical_test_indices",
             ],
         ),
         (
             "đơn thuốc, toa thuốc, prescription",
             [
-                "CREATE TABLE medical_prescription_order",
-                "CREATE TABLE medical_prescription_order_line",
+                "medical_prescription_order",
+                "medical_prescription_order_line",
             ],
         ),
-        ("sản phẩm, product", ["CREATE TABLE product_product"]),
+        ("sản phẩm, product", ["product_product"]),
     ]
     docs = ['ngày khám đầu = date_first', 'địa điểm/nơi cưới = marriage_registration_place']
     question_sql_pair = [('có bao nhiêu bệnh nhân họ Nguyễn',"SELECT first_name FROM medical_patient mp WHERE unaccent(mp.first_name) ILIKE unaccent('%nguyen%');")]
