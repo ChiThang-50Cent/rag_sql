@@ -455,13 +455,13 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
         self.start()
 
         if ddls:
-            print('DDL: ', self.insert_ddl_statements(ddls))
+            print('DDLs: ', self.insert_ddl_statements(ddls))
         if guides:
-            print('DDL: ', self.insert_ddl_guides(guides))
+            print('Guides: ', self.insert_ddl_guides(guides))
         if docs:
-            print('DDL: ', self.insert_docs(docs))
+            print('Docs: ', self.insert_docs(docs))
         if question_sql_pairs:
-            print('DDL: ', self.insert_question_sql_pair(question_sql_pairs))        
+            print('Q&S Pair: ', self.insert_question_sql_pair(question_sql_pairs))        
 
 if __name__ == "__main__":
 
