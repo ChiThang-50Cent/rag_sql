@@ -87,7 +87,7 @@ class LLM_Model:
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
 
-        return outputs[0].split("```sql")[-1]
+        return prompt, outputs[0].split("```sql")[-1]
 
 
 class MilvusDB_VectorStore:
@@ -426,23 +426,9 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
         docs = self.get_related_docs(question)
         question_sql_pair = self.get_related_question_sql_pair(question)
 
-        query = self.submit_prompt(question, docs, ddls, question_sql_pair)
+        prompt, query = self.submit_prompt(question, docs, ddls, question_sql_pair)
 
-        return self._extract_sql(query)
-
-    def ask(self, question):
-        try:
-            sql = self.generate_query(question)
-        except Exception as e:
-            print('Error when generate sql: ', e)
-            return 'Tôi chịu'
-        
-        try:
-            res = self.run_sql(sql)
-            return res
-        except Exception as e:
-            print('Error when run sql: ', e)
-            return 'Đang có trục trặc gì ấy.. .-.'
+        return prompt, self._extract_sql(query)
     
     def train(
             self, 
@@ -462,6 +448,20 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
             print('Docs: ', self.insert_docs(docs))
         if question_sql_pairs:
             print('Q&S Pair: ', self.insert_question_sql_pair(question_sql_pairs))        
+
+    def ask(self, question):
+        try:
+            prompt, sql = self.generate_query(question)
+        except Exception as e:
+            print('Error when generate sql: ', e)
+            return 'Tôi chịu', None, None
+        
+        try:
+            res = self.run_sql(sql)
+            return res, prompt, sql
+        except Exception as e:
+            print('Error when run sql: ', e)
+            return 'Đang có trục trặc gì ấy.. .-.',  prompt, sql
 
 if __name__ == "__main__":
 
