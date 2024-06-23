@@ -121,7 +121,7 @@ class MilvusDB_VectorStore:
         self.client.create_collection(
             collection_name=collection_name,
             dimension=self.dim,
-            metric_type="IP",
+            metric_type="COSINE",
             schema=schema,
         )
 
