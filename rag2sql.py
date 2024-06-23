@@ -7,6 +7,7 @@ import pandas as pd
 
 from pymilvus import model
 from pymilvus import MilvusClient, DataType
+from pymilvus.milvus_client.index import IndexParams
 from pymilvus.model.reranker import CrossEncoderRerankFunction
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -44,8 +45,8 @@ class LLM_Model:
         prompt_template = (
             "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
             + "Generate a SQL query to answer this question: `{user_question}`\n\n"
-            + "- If you cannot answer the question with the \
-                available database schema, return 'I do not know.`\n"
+            + "- If you cannot answer the question with the"
+            + "available database schema, return 'I do not know.`\n"
             + "{instructions}\n\nDDL statements:\n{create_table_statements}\n\n"
             + "-- Refer some samples below:\n{question_sql_pairs}\n\n"
             + "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
@@ -114,15 +115,15 @@ class MilvusDB_VectorStore:
         self.ddl_guide_collection = "ddl_guide_collection"
         self.qs_pair_collection = "qs_pair_collection"
 
-    def create_collection(self, collection_name, schema):
+    def create_collection(self, collection_name, schema, index_params):
         if self.client.has_collection(collection_name=collection_name):
             self.client.drop_collection(collection_name=collection_name)
 
         self.client.create_collection(
             collection_name=collection_name,
             dimension=self.dim,
-            metric_type="COSINE",
             schema=schema,
+            index_params=index_params,
         )
 
     def create_ddl_collection(self):
@@ -139,11 +140,10 @@ class MilvusDB_VectorStore:
             field_name="table_ddl", datatype=DataType.VARCHAR, max_length=2**15
         )
 
-        self.create_collection(self.ddl_collection, schema)
-
-        index_params = self.client.prepare_index_params()
+        index_params = IndexParams()
         index_params.add_index("name_vector", "", "", metric_type="COSINE")
-        self.client.create_index(self.ddl_collection, index_params)
+
+        self.create_collection(self.ddl_collection, schema, index_params)
 
     def create_doc_collection(self):
         schema = MilvusClient.create_schema(auto_id=True, primary_field="id")
@@ -154,11 +154,10 @@ class MilvusDB_VectorStore:
             field_name="doc_vector", datatype=DataType.FLOAT_VECTOR, dim=self.dim
         )
 
-        self.create_collection(self.doc_collection, schema)
-
-        index_params = self.client.prepare_index_params()
+        index_params = IndexParams()
         index_params.add_index("doc_vector", "", "", metric_type="COSINE")
-        self.client.create_index(self.doc_collection, index_params)
+
+        self.create_collection(self.doc_collection, schema, index_params)
 
     def create_ddl_guide_collection(self):
         schema = MilvusClient.create_schema(auto_id=True, primary_field="id")
@@ -172,11 +171,10 @@ class MilvusDB_VectorStore:
             field_name="guide_vector", datatype=DataType.FLOAT_VECTOR, dim=self.dim
         )
 
-        self.create_collection(self.ddl_guide_collection, schema)
-
-        index_params = self.client.prepare_index_params()
+        index_params = IndexParams()
         index_params.add_index("guide_vector", "", "", metric_type="COSINE")
-        self.client.create_index(self.ddl_guide_collection, index_params)
+
+        self.create_collection(self.ddl_guide_collection, schema, index_params)
 
     def create_question_sql_pair(self):
         schema = MilvusClient.create_schema(auto_id=True, primary_field="id")
@@ -190,11 +188,10 @@ class MilvusDB_VectorStore:
             field_name="question_vector", datatype=DataType.FLOAT_VECTOR, dim=self.dim
         )
 
-        self.create_collection(self.qs_pair_collection, schema)
-
-        index_params = self.client.prepare_index_params()
+        index_params = IndexParams()
         index_params.add_index("question_vector", "", "", metric_type="COSINE")
-        self.client.create_index(self.qs_pair_collection, index_params)
+
+        self.create_collection(self.qs_pair_collection, schema, index_params)
 
     def start(self):
         self.create_ddl_collection()
