@@ -115,7 +115,7 @@ class MilvusDB_VectorStore:
         self.ddl_guide_collection = "ddl_guide_collection"
         self.qs_pair_collection = "qs_pair_collection"
 
-    def create_collection(self, collection_name, schema, index_params):
+    def create_collection(self, collection_name, schema):
         if self.client.has_collection(collection_name=collection_name):
             self.client.drop_collection(collection_name=collection_name)
 
@@ -123,11 +123,10 @@ class MilvusDB_VectorStore:
             collection_name=collection_name,
             dimension=self.dim,
             schema=schema,
-            index_params=index_params,
         )
 
     def create_ddl_collection(self):
-        schema = MilvusClient.create_schema(auto_id=True, primary_field="id")
+        schema = MilvusClient.create_schema(auto_id=True, primary_field="id", enable_dynamic_field=True)
 
         schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
         schema.add_field(
@@ -140,13 +139,18 @@ class MilvusDB_VectorStore:
             field_name="table_ddl", datatype=DataType.VARCHAR, max_length=2**15
         )
 
+        try:
+            self.create_collection(self.ddl_collection, schema)
+        except Exception as ex:
+            raise ex from ex
+        
         index_params = IndexParams()
         index_params.add_index("name_vector", "", "", metric_type="COSINE")
-
-        self.create_collection(self.ddl_collection, schema, index_params)
+        self.client.create_index(self.ddl_collection, index_params)
+        self.client.load_collection(self.ddl_collection)
 
     def create_doc_collection(self):
-        schema = MilvusClient.create_schema(auto_id=True, primary_field="id")
+        schema = MilvusClient.create_schema(auto_id=True, primary_field="id", enable_dynamic_field=True)
 
         schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
         schema.add_field(field_name="doc", datatype=DataType.VARCHAR, max_length=512)
@@ -154,13 +158,18 @@ class MilvusDB_VectorStore:
             field_name="doc_vector", datatype=DataType.FLOAT_VECTOR, dim=self.dim
         )
 
+        try:
+            self.create_collection(self.doc_collection, schema)
+        except Exception as ex:
+            raise ex from ex
+        
         index_params = IndexParams()
         index_params.add_index("doc_vector", "", "", metric_type="COSINE")
-
-        self.create_collection(self.doc_collection, schema, index_params)
+        self.client.create_index(self.doc_collection, index_params)
+        self.client.load_collection(self.doc_collection)
 
     def create_ddl_guide_collection(self):
-        schema = MilvusClient.create_schema(auto_id=True, primary_field="id")
+        schema = MilvusClient.create_schema(auto_id=True, primary_field="id", enable_dynamic_field=True,)
 
         schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
         schema.add_field(field_name="guide", datatype=DataType.VARCHAR, max_length=256)
@@ -171,13 +180,18 @@ class MilvusDB_VectorStore:
             field_name="guide_vector", datatype=DataType.FLOAT_VECTOR, dim=self.dim
         )
 
+        try:
+            self.create_collection(self.ddl_guide_collection, schema)
+        except Exception as ex:
+            raise ex from ex
+        
         index_params = IndexParams()
         index_params.add_index("guide_vector", "", "", metric_type="COSINE")
-
-        self.create_collection(self.ddl_guide_collection, schema, index_params)
+        self.client.create_index(self.ddl_guide_collection, index_params)
+        self.client.load_collection(self.ddl_guide_collection)
 
     def create_question_sql_pair(self):
-        schema = MilvusClient.create_schema(auto_id=True, primary_field="id")
+        schema = MilvusClient.create_schema(auto_id=True, primary_field="id", enable_dynamic_field=True,)
 
         schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
         schema.add_field(field_name="question", datatype=DataType.VARCHAR, max_length=512)
@@ -188,10 +202,15 @@ class MilvusDB_VectorStore:
             field_name="question_vector", datatype=DataType.FLOAT_VECTOR, dim=self.dim
         )
 
+        try:
+            self.create_collection(self.qs_pair_collection, schema)
+        except Exception as ex:
+            raise ex from ex
+        
         index_params = IndexParams()
         index_params.add_index("question_vector", "", "", metric_type="COSINE")
-
-        self.create_collection(self.qs_pair_collection, schema, index_params)
+        self.client.create_index(self.qs_pair_collection, index_params)
+        self.client.load_collection(self.qs_pair_collection)
 
     def start(self):
         self.create_ddl_collection()
@@ -218,7 +237,10 @@ class MilvusDB_VectorStore:
 
     def insert_docs(self, docs: List[str]):
         data = [
-            {"doc": doc, "doc_vector": self.embedding_model.encode_documents([doc])[0]}
+            {
+                "doc": doc, 
+                "doc_vector": self.embedding_model.encode_documents([doc])[0]
+            }
             for doc in docs
         ]
 
@@ -308,24 +330,22 @@ class MilvusDB_VectorStore:
         return self._extract_query_results([doc["entity"]["doc"] for doc in ann_search[0]])
 
     def get_related_ddls(self, question) -> List:
-        search_vector = self.embedding_model.encode_documents([question])
-
-        ann_search = self.client.search(
+        ann_search = self.client.query(
             collection_name=self.ddl_collection,
-            anns_field="name_vector",
-            data=search_vector,
+            filter=f'table_name == "{question}"',
             limit=1,
             output_fields=["table_ddl"],
         )
 
-        related_ddls = [ddl["entity"]["table_ddl"] for ddl in ann_search[0]]
-
-        return related_ddls
-
-    def get_many_related_ddls(self, list_question: List[str]) -> List:       
-        return self._extract_query_results(
-            [self.get_related_ddls(question)[0] for question in list_question]
-        )
+        return [ddl["table_ddl"] for ddl in ann_search]
+    
+    def get_many_related_ddls(self, list_question: List[str]) -> str:
+        related_ddls = []
+        for question in list_question:
+            ddls = self.get_related_ddls(question)
+            related_ddls.extend(ddls)
+        
+        return self._extract_query_results(related_ddls)
 
     def get_related_question_sql_pair(self, question):
         search_vector = self.embedding_model.encode_documents([question])
@@ -463,10 +483,9 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
 
 
 if __name__ == "__main__":
+    from get_ddl import ddls
 
-    rag2sql = Rag2SQL_Model('milvus_demo.db', 'model_name')
-
-    ddls = rag2sql.get_ddls()
+    rag2sql = MilvusDB_VectorStore('milvus_demo.db')
     guide_docs = [
         ("phòng, department", ["hr_department"]),
         ("bệnh nhân, patient", ["medical_patient"]),
@@ -491,11 +510,15 @@ if __name__ == "__main__":
     docs = ['ngày khám đầu = date_first', 'địa điểm/nơi cưới = marriage_registration_place']
     question_sql_pair = [('có bao nhiêu bệnh nhân họ Nguyễn',"SELECT first_name FROM medical_patient mp WHERE unaccent(mp.first_name) ILIKE unaccent('%nguyen%');")]
 
-    rag2sql.train(
-        ddls = ddls,
-        guides = guide_docs,
-        docs = docs,
-        question_sql_pairs=question_sql_pair
-    )
+    # print(ddls[0])
+    if (False):
+        rag2sql.start()
+        rag2sql.insert_ddl_statements(ddls)
+        rag2sql.insert_ddl_guides(guide_docs)
+        rag2sql.insert_docs(docs)
+        rag2sql.insert_question_sql_pair(question_sql_pair)
 
-    rag2sql.ask('Có bao nhiêu bệnh nhân nam')
+    guides = rag2sql.get_related_ddl_guides('có bao nhiêu bệnh nhân có nhiều hơn 2 xét nghiệm?')
+    print(rag2sql.get_many_related_ddls(guides))
+    # print(rag2sql.get_related_ddls('medical_patient')[0]['table_ddl'])
+
