@@ -15,7 +15,7 @@ from langchain_community.utilities import SQLDatabase
 from urllib.parse import quote
 
 class LLM_Model:
-    def __init__(self, model_name_or_path):
+    def __init__(self, model_name_or_path, dtype='16'):
         is_enough_memory = torch.cuda.get_device_properties(0).total_memory > 15e9
         if not (torch.cuda.is_available() and is_enough_memory):
             raise Exception(
@@ -24,13 +24,30 @@ class LLM_Model:
             )
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name_or_path,
-            trust_remote_code=True,
-            torch_dtype=torch.float16,
-            device_map="auto",
-            use_cache=True,
-        )
+        if (dtype =='16'):
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name_or_path,
+                trust_remote_code=True,
+                torch_dtype=torch.float16,
+                device_map="auto",
+                use_cache=True,
+            )
+        elif (dtype == '8'):
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name_or_path,
+                trust_remote_code=True,
+                load_in_8bit=True,
+                device_map="auto",
+                use_cache=True,
+            )
+        elif (dtype == '4'):
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name_or_path,
+                trust_remote_code=True,
+                load_in_4bit=True,
+                device_map="auto",
+                use_cache=True,
+            )
 
         self.model.generation_config.temperature = None
         self.model.generation_config.top_p = None
@@ -281,7 +298,6 @@ class MilvusDB_VectorStore:
                 res += f'question: {q}\n'
                 res += f'sql: {sql}\n'
                 res += ('-'*10 + '\n')
-            res += '\n\n'
 
             return res
         
