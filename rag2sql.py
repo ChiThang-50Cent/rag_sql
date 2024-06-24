@@ -35,7 +35,7 @@ class LLM_Model:
         self.model = AutoModelForCausalLM.from_pretrained(
                 model_name_or_path,
                 trust_remote_code=True,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
                 quantization_config=config,
                 device_map="auto",
                 use_cache=True,
