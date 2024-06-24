@@ -27,7 +27,7 @@ class LLM_Model:
         config = None
 
         if (dtype == '8'):
-            config = BitsAndBytesConfig(load_in_8bit=True)
+            config = BitsAndBytesConfig(load_in_8bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
         elif (dtype == '4'):
             config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
 
