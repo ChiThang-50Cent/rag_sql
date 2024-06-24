@@ -387,9 +387,9 @@ class MilvusDB_VectorStore:
 
 
 class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
-    def __init__(self, db_name, model_name_or_path):
+    def __init__(self, db_name, model_name_or_path, dtype):
         MilvusDB_VectorStore.__init__(self, db_name)
-        LLM_Model.__init__(self, model_name_or_path)
+        LLM_Model.__init__(self, model_name_or_path, dtype)
         self.connection = None
         self.connection_string = ''
 
