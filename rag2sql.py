@@ -10,7 +10,8 @@ from pymilvus import MilvusClient, DataType
 from pymilvus.milvus_client.index import IndexParams
 from pymilvus.model.reranker import CrossEncoderRerankFunction
 
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+
 from langchain_community.utilities import SQLDatabase
 from urllib.parse import quote
 
@@ -23,28 +24,19 @@ class LLM_Model:
                             or does not have enough memory (16GB required)."
             )
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-        if (dtype =='16'):
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_name_or_path,
-                trust_remote_code=True,
-                torch_dtype=torch.float16,
-                device_map="auto",
-                use_cache=True,
-            )
-        elif (dtype == '8'):
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_name_or_path,
-                trust_remote_code=True,
-                load_in_8bit=True,
-                device_map="auto",
-                use_cache=True,
-            )
+        config = None
+
+        if (dtype == '8'):
+            config = BitsAndBytesConfig(load_in_8bit=True, llm_int8_enable_fp32_cpu_offload=True)
         elif (dtype == '4'):
-            self.model = AutoModelForCausalLM.from_pretrained(
+            config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+        self.model = AutoModelForCausalLM.from_pretrained(
                 model_name_or_path,
                 trust_remote_code=True,
-                load_in_4bit=True,
+                torch_dtype=torch.bfloat16,
+                quantization_config=config,
                 device_map="auto",
                 use_cache=True,
             )
@@ -439,20 +431,26 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
                         results, columns=[desc[0] for desc in cursor.description]
                     )
                 return df
-            
+
             except Exception as e:
+                self.connection.rollback()
                 print(f"The error '{e}' occurred")
                 raise Exception("Error when query: ", e)
         
     @staticmethod
-    def _extract_sql(sql):
+    def _extract_sql(sql_response):
         sensitive_keywords = ['DELETE', 'DROP', 'CREATE', 'ALTER', 'TRUNCATE', 'INSERT', 'UPDATE']
     
         for keyword in sensitive_keywords:
-            if keyword in sql.upper():
+            if keyword in sql_response.upper():
                 return "SELECT 'Tôi không biết' as answer;"
         
-        return sql
+        sqls = re.findall(r"SELECT.*?;", sql_response, re.DOTALL)
+        if sqls:
+            return sqls[-1]
+
+        return "SELECT 'Đã có lỗi xảy ra!' as answer;"
+
 
     def generate_query(self, question):
         guides = self.get_related_ddl_guides(question)
