@@ -54,10 +54,11 @@ class LLM_Model:
         prompt_template = (
             "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
             + "Generate a SQL query to answer this question: `{user_question}`\n\n"
+            + "Use instructions below if needed\n"
             + "- If you cannot answer the question with the"
             + "available database schema, return 'I do not know.`\n"
             + "{instructions}\n\nDDL statements:\n{create_table_statements}\n\n"
-            + "-- Refer some samples below:\n{question_sql_pairs}\n\n"
+            + "- Refer some samples below:\n{question_sql_pairs}\n\n"
             + "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
             + "The following SQL query best answers the question `{user_question}`:\n"
             + "```sql"
