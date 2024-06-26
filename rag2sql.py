@@ -441,6 +441,8 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
         
     @staticmethod
     def _extract_sql(sql_response):
+        return sql_response
+
         sensitive_keywords = ['DELETE', 'DROP', 'CREATE', 'ALTER', 'TRUNCATE', 'INSERT', 'UPDATE']
     
         for keyword in sensitive_keywords:
