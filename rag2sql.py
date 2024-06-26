@@ -57,6 +57,7 @@ class LLM_Model:
             + "Use instructions below if needed\n"
             + "- If you cannot answer the question with the"
             + "available database schema, return 'I do not know.`\n"
+            + "- Use where lower() LIKE '%%'\n"
             + "{instructions}\n\nDDL statements:\n{create_table_statements}\n\n"
             + "- Refer some samples below:\n{question_sql_pairs}\n\n"
             + "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
@@ -323,7 +324,7 @@ class MilvusDB_VectorStore:
             statement for statements in create_statements for statement in statements
         ]
 
-        return create_statements
+        return list(set(create_statements))
 
     def get_related_docs(self, question) -> List:
         search_vector = self.embedding_model.encode_documents([question])
@@ -348,9 +349,9 @@ class MilvusDB_VectorStore:
 
         return [ddl["table_ddl"] for ddl in ann_search]
     
-    def get_many_related_ddls(self, list_question: List[str]) -> str:
+    def get_many_related_ddls(self, list_guides: List[str]) -> str:
         related_ddls = []
-        for question in list_question:
+        for question in list_guides:
             ddls = self.get_related_ddls(question)
             related_ddls.extend(ddls)
         
