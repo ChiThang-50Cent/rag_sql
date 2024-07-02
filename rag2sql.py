@@ -62,8 +62,7 @@ class LLM_Model:
             + "Use instructions below if needed\n"
             + "- If you cannot answer the question with the"
             + "available database schema, return 'I do not know.`\n"
-            + "- Use where lower() LIKE '%%'\n"
-            + "- Use name field if have one.\n"
+            + "- If the question ask with string, Use where lower() LIKE '%%'\n"
             + "{instructions}\n\nDDL statements:\n{create_table_statements}\n\n"
             + "- Refer some samples below:\n{question_sql_pairs}\n\n"
             + "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
@@ -649,7 +648,7 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
         guides = self.get_related_ddl_guides(sumarize_question)
         ddls = self.get_many_related_ddls(guides)
         docs = self.get_related_docs(sumarize_question)
-        question_sql_pair = self.get_related_question_sql_pair(question)
+        question_sql_pair = self.get_related_question_sql_pair(sumarize_question)
 
         prompt, query = self.submit_prompt(question, docs, ddls, question_sql_pair)
 
@@ -808,7 +807,7 @@ AND (
 
     r = MilvusDB_VectorStore("milvus_demo.db")
 
-    if True:
+    if False:
         postgres_uri = (
             "postgresql://ims_ro:imsro%406F17A4E0@14.224.150.150:54321/hp_migrate"
         )
