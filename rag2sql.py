@@ -480,7 +480,7 @@ class MilvusDB_VectorStore:
             ddl = ddl[:tab_index] + f"\t{col}, \n" + ddl[tab_index:]
         return ddl + ";\n"
 
-    def get_related_ddls(self, question, n_ddls=1, n_docs=5, n_cols=5) -> List:
+    def get_related_ddls(self, question, docs: str, n_ddls=1, n_docs=5, n_cols=5) -> List:
         ann_search = self.client.search(
             collection_name=self.ddl_collection,
             anns_field="vector",
@@ -490,7 +490,7 @@ class MilvusDB_VectorStore:
         )
         table_ddl = [doc["entity"]["table_ddl"] for doc in ann_search[0]]
         table_name = [doc["entity"]["table_name"] for doc in ann_search[0]]
-        docs = self.get_related_docs(question, n_docs).split("\n")
+        docs = docs.split("\n")
 
         for i, name in enumerate(table_name):
             columns = self.get_many_related_table_columns(name, docs, n_cols)
@@ -499,11 +499,11 @@ class MilvusDB_VectorStore:
         return table_ddl
 
     def get_many_related_ddls(
-        self, list_guides: List[str], n_ddls=1, n_docs=5, n_cols=5
+        self, list_guides: List[str], docs: str, n_ddls=1, n_docs=5, n_cols=5
     ) -> str:
         related_ddls = []
         for question in list_guides:
-            ddls = self.get_related_ddls(question, n_ddls, n_docs, n_cols)
+            ddls = self.get_related_ddls(question, docs, n_ddls, n_docs, n_cols)
             related_ddls.extend(ddls)
 
         return self._extract_query_results(list(set(related_ddls)))
@@ -697,7 +697,7 @@ if __name__ == "__main__":
     guide_docs = [
         ("phòng, department", ["hr_department"]),
         ("bệnh nhân, patient", ["medical_patient"]),
-        ("nhân viên, staff, employee", ["hr_employee"]),
+        ("staff, employee", ["hr_employee"]),
         ("sản phẩm, product", ["product_product"]),
         ("phôi, embryo", ["medical_embryo_culture"]),
         (
@@ -732,6 +732,7 @@ if __name__ == "__main__":
         ),
     ]
     docs = [
+        "- giới tính, nam, nữ ~ gender",
         "- tuổi ~ birthday",
         "- địa điểm/nơi cưới ~ marriage_registration_place",
         "- điều trị thành công ~ num_baby_live_digit > 0",
@@ -834,14 +835,14 @@ AND (
         # r.create_table_column_collection()
         # r.create_ddl_collection()
         # r.create_doc_collection()
-        r.create_ddl_guide_collection()
+        # r.create_ddl_guide_collection()
         # r.create_question_sql_pair()
-        # r.start()
-        # r.insert_ddl_statements(mod_ddls)
-        # r.insert_table_columns(table_columns)
+        r.start()
+        r.insert_ddl_statements(mod_ddls)
+        r.insert_table_columns(table_columns)
         r.insert_ddl_guides(guide_docs)
-        # r.insert_docs(docs)
-        # r.insert_question_sql_pair(question_sql_pair)
+        r.insert_docs(docs)
+        r.insert_question_sql_pair(question_sql_pair)
 
     else:
         from underthesea import pos_tag
@@ -861,10 +862,11 @@ AND (
 
             print(q)
             guides = r.get_related_ddl_guides(q)
+            r_docs = r.get_related_docs(q)
+
             # print(guides)
-            print(r.get_many_related_ddls(guides))
+            print(r.get_many_related_ddls(guides, r_docs))
             print("-" * 20)
-            print(r.get_related_docs(q))
             print("-" * 20)
             print(r.get_related_question_sql_pair(q))
 
