@@ -318,17 +318,27 @@ class MilvusDB_VectorStore:
         self.create_question_sql_pair()
 
     @staticmethod
-    def process_ddl(ddl: str) -> Tuple[str, List]:
-        if len(ddl) < 5000:
-            return ddl, []
-        
-        regex_statement = r"^\t(?!.*(?:CONSTRAINT|id|name|write_date|create_date)).*"
-        column_lines = re.findall(regex_statement, ddl, re.MULTILINE)
-        column_lines = [
-            column.replace("\t", "").replace(", ", "") for column in column_lines
-        ]
+    def segment_sentence(sentence):
+        from underthesea import pos_tag
 
+        return ", ".join(
+            [word for word, tag in pos_tag(sentence) if "V" in tag or "N" in tag]
+        )
+
+    @staticmethod
+    def process_ddl(ddl: str):
+        regex_statement = r"^\t(?!.*(?:CONSTRAINT|id|name|write_date|create_date)).*"
+        column_lines = []
+        
+        if len(ddl) >= 5000:
+            column_lines = re.findall(regex_statement, ddl, re.MULTILINE)
+            column_lines = [
+                column.replace("\t", "").replace(", ", "") for column in column_lines
+            ]
+
+        remove_constraint_regex = r"^\t(CONSTRAINT).*"
         modified_ddl = re.sub(regex_statement, "", ddl, flags=re.MULTILINE)
+        modified_ddl = re.sub(remove_constraint_regex, "", modified_ddl, flags=re.MULTILINE)
         modified_ddl = re.sub(r"\n\s*\n", "\n", modified_ddl).strip()
 
         return modified_ddl, column_lines
@@ -366,7 +376,9 @@ class MilvusDB_VectorStore:
 
     def insert_docs(self, docs: List[str]):
         data = [
-            {"doc": doc, "vector": self.embedding_model.encode_documents([doc])[0]}
+            {"doc": doc, "vector": self.embedding_model.encode_documents([
+                self.segment_sentence(doc)
+                ])[0]}
             for doc in docs
         ]
 
@@ -611,14 +623,6 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
                 raise Exception("Error when query: ", e)
 
     @staticmethod
-    def _extract_question(question):
-        from underthesea import pos_tag
-
-        return ", ".join(
-            [word for word, tag in pos_tag(question) if "V" in tag or "N" in tag]
-        )
-
-    @staticmethod
     def _extract_sql(sql_response):
         # return sql_response
 
@@ -647,7 +651,7 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
         return "SELECT 'Đã có lỗi xảy ra!' as answer;"
 
     def generate_query(self, question):
-        sumarize_question = self._extract_question(question)
+        sumarize_question = self.segment_sentence(question)
         docs = self.get_related_docs(sumarize_question)
         guides = self.get_related_ddl_guides(sumarize_question)
         ddls = self.get_many_related_ddls(guides, docs)
@@ -735,13 +739,13 @@ if __name__ == "__main__":
         "- giới tính, nam, nữ ~ gender",
         "- tuổi ~ birthday",
         "- địa điểm/nơi cưới ~ marriage_registration_place",
-        "- điều trị, thành công ~ num_baby_live_digit > 0",
-        "- năm điều trị, ngày khám đầu ~ date_first",
-        "- mẫu trữ, hết hạn ~ date_expired",
-        "- kết quả, beta, dương tính ~ conclude = 'positive'",
-        "- mẫu trữ, tinh trùng ~ type_cryopreserv = 'sperm'",
-        "- thể tích, trước trữ ~ volume_before_stored_sperm",
-        "- phôi, có, kiểu hình, ngày 0 ~ day_info_0",
+        "- điều trị thành công ~ num_baby_live_digit > 0",
+        "- năm điều trị ngày khám đầu ~ date_first",
+        "- mẫu trữ hết hạn ~ date_expired",
+        "- kết quả beta dương tính ~ conclude = 'positive'",
+        "- mẫu trữ tinh trùng ~ type_cryopreserv = 'sperm'",
+        "- thể tích trước trữ ~ volume_before_stored_sperm",
+        "- phôi có kiểu hình, ngày 0 ~ day_info_0",
         "- chỉ số E2 ~ medical_test_indices.name = 'E2'",
         "- điều trị chỉ là IVF ~ treatment_type_ids.selection.value",
     ]
