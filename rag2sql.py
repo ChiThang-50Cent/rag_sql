@@ -648,9 +648,9 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
 
     def generate_query(self, question):
         sumarize_question = self._extract_question(question)
-        guides = self.get_related_ddl_guides(sumarize_question)
-        ddls = self.get_many_related_ddls(guides)
         docs = self.get_related_docs(sumarize_question)
+        guides = self.get_related_ddl_guides(sumarize_question)
+        ddls = self.get_many_related_ddls(guides, docs)
         question_sql_pair = self.get_related_question_sql_pair(sumarize_question)
 
         prompt, query = self.submit_prompt(question, docs, ddls, question_sql_pair)
