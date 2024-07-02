@@ -735,13 +735,13 @@ if __name__ == "__main__":
         "- giới tính, nam, nữ ~ gender",
         "- tuổi ~ birthday",
         "- địa điểm/nơi cưới ~ marriage_registration_place",
-        "- điều trị thành công ~ num_baby_live_digit > 0",
+        "- điều trị, thành công ~ num_baby_live_digit > 0",
         "- năm điều trị, ngày khám đầu ~ date_first",
-        "- mẫu trữ sắp hết hạn ~ date_expired",
-        "- kết quả beta dương tính ~ conclude = 'positive'",
-        "- mẫu trữ tinh trùng ~ type_cryopreserv = 'sperm'",
-        "- thể tích trước trữ ~ volume_before_stored_sperm",
-        "- phôi có kiểu hình ngày 0 ~ day_info_0",
+        "- mẫu trữ, hết hạn ~ date_expired",
+        "- kết quả, beta, dương tính ~ conclude = 'positive'",
+        "- mẫu trữ, tinh trùng ~ type_cryopreserv = 'sperm'",
+        "- thể tích, trước trữ ~ volume_before_stored_sperm",
+        "- phôi, có, kiểu hình, ngày 0 ~ day_info_0",
         "- chỉ số E2 ~ medical_test_indices.name = 'E2'",
         "- điều trị chỉ là IVF ~ treatment_type_ids.selection.value",
     ]
@@ -857,7 +857,7 @@ AND (
                 continue
 
             q = ", ".join(
-                [word for word, tag in pos_tag(q) if "V" in tag or "N" in tag]
+                [word for word, tag in pos_tag(q) if "V" in tag or "N" in tag or 'A' in tag]
             )
 
             print(q)
@@ -867,6 +867,7 @@ AND (
             # print(guides)
             print(r.get_many_related_ddls(guides, r_docs))
             print("-" * 20)
+            print(r_docs)
             print("-" * 20)
             print(r.get_related_question_sql_pair(q))
 
