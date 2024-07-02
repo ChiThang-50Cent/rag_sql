@@ -402,7 +402,7 @@ class MilvusDB_VectorStore:
             res = ""
             for q, sql in results:
                 res += f"The following SQL query best answers the question: {q}\n"
-                res += f"```sql {sql}\n"
+                res += f"```sql {sql}```\n"
                 res += "-" * 10 + "\n"
 
             return res
