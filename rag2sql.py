@@ -634,6 +634,10 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
             if keyword in sql_response.upper():
                 return "SELECT 'Tôi không biết' as answer;"
 
+        sqls = re.findall(r"\bWITH\b .*?;", sql_response, re.DOTALL)
+        if sqls:
+            return sqls[-1]
+
         sqls = re.findall(r"SELECT.*?;", sql_response, re.DOTALL)
         if sqls:
             return sqls[-1]
@@ -641,9 +645,10 @@ class Rag2SQL_Model(MilvusDB_VectorStore, LLM_Model):
         return "SELECT 'Đã có lỗi xảy ra!' as answer;"
 
     def generate_query(self, question):
-        guides = self.get_related_ddl_guides(question)
+        sumarize_question = self._extract_question(question)
+        guides = self.get_related_ddl_guides(sumarize_question)
         ddls = self.get_many_related_ddls(guides)
-        docs = self.get_related_docs(question)
+        docs = self.get_related_docs(sumarize_question)
         question_sql_pair = self.get_related_question_sql_pair(question)
 
         prompt, query = self.submit_prompt(question, docs, ddls, question_sql_pair)
