@@ -322,7 +322,7 @@ class MilvusDB_VectorStore:
         from underthesea import pos_tag
 
         return ", ".join(
-            [word for word, tag in pos_tag(sentence) if "V" in tag or "N" in tag]
+            [word for word, tag in pos_tag(sentence) if "V" in tag or "N" in tag or 'A' in tag]
         )
 
     @staticmethod
@@ -376,9 +376,12 @@ class MilvusDB_VectorStore:
 
     def insert_docs(self, docs: List[str]):
         data = [
-            {"doc": doc, "vector": self.embedding_model.encode_documents([
-                self.segment_sentence(doc)
-                ])[0]}
+            {
+                "doc": doc,
+                "vector": self.embedding_model.encode_documents(
+                    [self.segment_sentence(doc)]
+                )[0],
+            }
             for doc in docs
         ]
 
