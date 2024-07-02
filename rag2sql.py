@@ -319,6 +319,9 @@ class MilvusDB_VectorStore:
 
     @staticmethod
     def process_ddl(ddl: str) -> Tuple[str, List]:
+        if len(ddl) < 4000:
+            return ddl, []
+        
         regex_statement = r"^\t(?!.*(?:CONSTRAINT|id|name|write_date|create_date)).*"
         column_lines = re.findall(regex_statement, ddl, re.MULTILINE)
         column_lines = [
