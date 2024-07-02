@@ -64,7 +64,7 @@ class LLM_Model:
             + "available database schema, return 'I do not know.`\n"
             + "- If the question ask with string, Use where lower() LIKE '%%'\n"
             + "{instructions}\n\nDDL statements:\n{create_table_statements}\n\n"
-            + "- Refer some samples below:\n{question_sql_pairs}\n\n"
+            + "- Refer some samples below:\n{question_sql_pairs}\n"
             + "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
             + "The following SQL query best answers the question `{user_question}`:\n"
             + "```sql"
@@ -319,7 +319,7 @@ class MilvusDB_VectorStore:
 
     @staticmethod
     def process_ddl(ddl: str) -> Tuple[str, List]:
-        if len(ddl) < 4000:
+        if len(ddl) < 5000:
             return ddl, []
         
         regex_statement = r"^\t(?!.*(?:CONSTRAINT|id|name|write_date|create_date)).*"
@@ -404,8 +404,8 @@ class MilvusDB_VectorStore:
         if isinstance(results[0], tuple):
             res = ""
             for q, sql in results:
-                res += f"Question: {q}\n"
-                res += f"Sql: {sql}\n"
+                res += f"Question: {q}.\n"
+                res += f"Sql: \n{sql}\n"
                 res += "-" * 10 + "\n"
 
             return res
@@ -747,11 +747,11 @@ if __name__ == "__main__":
     question_sql_pair = [
         (
             "có bao nhiêu bệnh nhân họ Nguyễn",
-            "SELECT first_name FROM medical_patient mp WHERE unaccent(mp.first_name) ILIKE unaccent('%nguyen%');",
+            "SELECT first_name FROM medical_patient mp WHERE unaccent(mp.first_name) ILIKE unaccent('nguyen%');",
         ),
         (
             "Có bao nhiêu bệnh nhân lớn hơn 30 tuổi (Trung niên)",
-            "SELECT COUNT (*) FROM medical_patient mp WHERE EXTRACT (YEAR FROM AGE (CURRENT_DATE mp.birthday)) > 30;",
+            "SELECT COUNT (*) FROM medical_patient mp WHERE EXTRACT (YEAR FROM AGE (CURRENT_DATE, mp.birthday)) > 30;",
         ),
         (
             "Liệt kê bệnh nhân điều trị thành công trong năm 2023",
