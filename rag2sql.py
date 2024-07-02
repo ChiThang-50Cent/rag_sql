@@ -331,15 +331,15 @@ class MilvusDB_VectorStore:
         regex_statement = r"^\t(?!.*(?:CONSTRAINT|id|name|write_date|create_date)).*"
         column_lines = []
         
-        # if len(ddl) >= 5000:
-        #     column_lines = re.findall(regex_statement, ddl, re.MULTILINE)
-        #     column_lines = [
-        #         column.replace("\t", "").replace(", ", "") for column in column_lines
-        #     ]
+        if len(ddl) >= 5000:
+            column_lines = re.findall(regex_statement, ddl, re.MULTILINE)
+            column_lines = [
+                column.replace("\t", "").replace(", ", "") for column in column_lines
+            ]
 
         remove_constraint_regex = r"^\t(CONSTRAINT).*"
         modified_ddl = re.sub(remove_constraint_regex, "", ddl, flags=re.MULTILINE)
-        # modified_ddl = re.sub(regex_statement, "", modified_ddl, flags=re.MULTILINE)
+        modified_ddl = re.sub(regex_statement, "", modified_ddl, flags=re.MULTILINE)
         modified_ddl = re.sub(r"\n\s*\n", "\n", modified_ddl).strip()
 
         return modified_ddl, column_lines
