@@ -420,8 +420,8 @@ class MilvusDB_VectorStore:
         if isinstance(results[0], tuple):
             res = ""
             for q, sql in results:
-                res += f"Question: {q}.\n"
-                res += f"Sql: \n{sql}\n"
+                res += f"Question `{q}`:\n"
+                res += f"```sql{sql}```\n"
                 res += "-" * 10 + "\n"
 
             return res
